@@ -1,0 +1,77 @@
+const base_url = "https://api.jikan.moe/v3";
+
+
+async function searchAnime(event) {
+
+    event.preventDefault();
+
+    try {
+
+        const form = new FormData(this);
+        const query = form.get("search");
+
+        var data = await fetch(`${base_url}/search/anime?q=${query}&page=1`);
+        var dataObj = await data.json();
+        updateDom(dataObj);
+    } 
+    catch (error) {
+        console.log(error)
+    }
+
+}
+
+function updateDom(data) {
+
+    const searchResults = document.getElementById('search-results');
+
+    const animeByCategories = data.results
+        .reduce((acc, anime) => {
+
+            const { type } = anime;
+            if (acc[type] === undefined) acc[type] = [];
+            acc[type].push(anime);
+            return acc;
+
+        }, {});
+
+    searchResults.innerHTML = Object.keys(animeByCategories).map(key => {
+
+        const animesHTML = animeByCategories[key]
+            .sort((a, b) => b.score - a.score)
+            .map(anime => {
+                return `
+                    <div class="card">
+                        <div class="card-image">
+                            <img src="${anime.image_url}">
+                        </div>
+                        <div class="card-content">
+                            <span class="card-title">${anime.title}</span>
+                            <p>${anime.synopsis}</p>
+                            <p>Start:${anime.start_date}</p>
+                            <p>End:${anime.end_date}</p>
+                            <p><strong>IMDB:${anime.score}</strong></p>
+                        </div>
+                        <div class="card-action">
+                            <a href="${anime.url}">For more detail</a>
+                        </div>
+                    </div>
+                `
+            }).join("");
+
+
+        return `
+                <section>
+                    <h3>${key.toUpperCase()}</h3>
+                    <div class="kemicofa-row">${animesHTML}</div>
+                </section>
+            `
+    }).join("");
+}
+
+function pageLoaded() {
+    const form = document.getElementById('search_form');
+    form.addEventListener("submit", searchAnime);
+}
+
+
+window.addEventListener("load", pageLoaded);
